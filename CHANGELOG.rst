@@ -2,6 +2,11 @@
 Changelog for package robot_state_publisher
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.5.2 (2025-07-18)
+------------------
+* Replace deprecated tf2_ros headers (`#235 <https://github.com/ros/robot_state_publisher/issues/235>`_)
+* Contributors: Alejandro Hernández Cordero
+
 3.5.1 (2025-05-19)
 ------------------
 * Removed deprecated command-line argument (`#233 <https://github.com/ros/robot_state_publisher/issues/233>`_)
