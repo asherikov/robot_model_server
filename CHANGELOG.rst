@@ -2,6 +2,12 @@
 Changelog for package robot_state_publisher
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.5.5 (2026-04-09)
+------------------
+* Use new ROSIDL aggregate CMake target (`#246 <https://github.com/ros/robot_state_publisher/issues/246>`_)
+* Improvements (`#245 <https://github.com/ros/robot_state_publisher/issues/245>`_)
+* Contributors: Alejandro Hernández Cordero, Emerson Knapp
+
 3.5.4 (2026-01-09)
 ------------------
 * Update subscription callback signatures (`#241 <https://github.com/ros/robot_state_publisher/issues/241>`_)
