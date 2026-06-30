@@ -2,6 +2,12 @@
 Changelog for package robot_state_publisher
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.6.1 (2026-06-30)
+------------------
+* CPP 20 (`#247 <https://github.com/ros/robot_state_publisher//issues/247>`_)
+* avoiding the incremental vector reallocations (`#248 <https://github.com/ros/robot_state_publisher//issues/248>`_)
+* Contributors: Alejandro Hernández Cordero
+
 3.6.0 (2026-05-06)
 ------------------
 
