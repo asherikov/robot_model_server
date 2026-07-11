@@ -29,6 +29,7 @@
 #include "robot_model_server_ros.hpp"
 
 #include <chrono>
+#include <cstdlib>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -144,7 +145,7 @@ namespace robot_model_server_ros
         {
             if (state->position.empty())
             {
-                const char *first_joint = state->name.empty() ? "<none>" : state->name[0].c_str();
+                const char *first_joint = state->name.empty() ? "<none>" : state->name.at(0).c_str();
                 RCLCPP_WARN(
                         get_logger(),
                         "Robot state publisher ignored a JointState message about joint(s) "
@@ -182,7 +183,7 @@ namespace robot_model_server_ros
             std::map<std::string, double> joint_positions;
             for (size_t i = 0; i < state->name.size(); i++)
             {
-                joint_positions.emplace(state->name[i], state->position[i]);
+                joint_positions.emplace(state->name.at(i), state->position.at(i));
             }
 
             core_.computeMimicJoints(joint_positions);
@@ -200,8 +201,17 @@ namespace robot_model_server_ros
 
 int main(int argc, char **argv)
 {
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<robot_model_server_ros::RobotStatePublisher>(rclcpp::NodeOptions()));
-    rclcpp::shutdown();
-    return 0;
+    try
+    {
+        rclcpp::init(argc, argv);
+        rclcpp::spin(std::make_shared<robot_model_server_ros::RobotStatePublisher>(rclcpp::NodeOptions()));
+        rclcpp::shutdown();
+        return 0;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error: " << e.what() << '\n';
+        rclcpp::shutdown();
+        return EXIT_FAILURE;
+    }
 }

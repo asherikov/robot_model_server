@@ -29,6 +29,7 @@
 # This launch file shows how to launch robot_model_server with a simple
 # URDF read from a file (found using FindPackageShare) and passed as the
 # 'robot_description' parameter.
+# pylint: disable=duplicate-code
 
 import os
 
@@ -41,7 +42,7 @@ def generate_launch_description():
     pkg_share = FindPackageShare('robot_model_server_tests').find('robot_model_server_tests')
     urdf_dir = os.path.join(pkg_share, 'urdf')
     urdf_file = os.path.join(urdf_dir, 'test-desc.urdf')
-    with open(urdf_file, 'r') as infp:
+    with open(urdf_file, 'r', encoding='utf-8') as infp:
         robot_desc = infp.read()
 
     params = {'robot_description': robot_desc}

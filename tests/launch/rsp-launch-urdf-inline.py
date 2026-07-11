@@ -28,6 +28,7 @@
 
 # This launch file shows how to launch robot_model_server with a
 # simple URDF passed as the 'robot_description' parameter.
+# pylint: disable=duplicate-code
 
 import launch
 import launch_ros.actions

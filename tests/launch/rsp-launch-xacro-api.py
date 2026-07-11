@@ -28,6 +28,7 @@
 
 # This launch file shows how to launch robot_model_server with a URDF
 # first processed using the xacro python API.
+# pylint: disable=duplicate-code
 
 import os
 

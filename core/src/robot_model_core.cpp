@@ -162,7 +162,7 @@ namespace robot_model_server_core
         }
     }
 
-    std::vector<Transform> RobotModelCore::getTransforms(
+    [[nodiscard]] std::vector<Transform> RobotModelCore::getTransforms(
             const std::map<std::string, double> &joint_positions,
             const Time &time,
             const std::string &frame_prefix) const
@@ -185,7 +185,7 @@ namespace robot_model_server_core
         return tf_transforms;
     }
 
-    std::vector<Transform> RobotModelCore::getFixedTransforms(const Time &time, const std::string &frame_prefix) const
+    [[nodiscard]] std::vector<Transform> RobotModelCore::getFixedTransforms(const Time &time, const std::string &frame_prefix) const
     {
         std::vector<Transform> tf_transforms;
         tf_transforms.reserve(segments_fixed_.size());

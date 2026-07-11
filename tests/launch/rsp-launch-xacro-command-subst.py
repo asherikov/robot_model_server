@@ -28,6 +28,7 @@
 
 # This launch file shows how to launch robot_model_server with a URDF
 # first processed using the xacro command-line program.
+# pylint: disable=duplicate-code
 
 import os
 
@@ -41,7 +42,7 @@ def generate_launch_description():
     pkg_share = FindPackageShare('robot_model_server_tests').find('robot_model_server_tests')
     urdf_dir = os.path.join(pkg_share, 'urdf')
     xacro_file = os.path.join(urdf_dir, 'test-desc.urdf.xacro')
-    robot_desc = launch.substitutions.Command('xacro %s' % xacro_file)
+    robot_desc = launch.substitutions.Command(f'xacro {xacro_file}')
     params = {'robot_description': robot_desc}
     rsp = launch_ros.actions.Node(package='robot_model_server_ros',
                                   executable='robot_model_server_ros',

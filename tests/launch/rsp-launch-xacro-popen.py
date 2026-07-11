@@ -28,6 +28,7 @@
 
 # This launch file shows how to launch robot_model_server with a URDF
 # first processed using the xacro command-line program using Popen.
+# pylint: disable=duplicate-code
 
 import os
 import subprocess
@@ -41,8 +42,8 @@ def generate_launch_description():
     pkg_share = FindPackageShare('robot_model_server_tests').find('robot_model_server_tests')
     urdf_dir = os.path.join(pkg_share, 'urdf')
     xacro_file = os.path.join(urdf_dir, 'test-desc.urdf.xacro')
-    p = subprocess.Popen(['xacro', xacro_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    robot_desc, stderr = p.communicate()
+    with subprocess.Popen(['xacro', xacro_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
+        robot_desc, _ = p.communicate()
     params = {'robot_description': robot_desc.decode('utf-8')}
     rsp = launch_ros.actions.Node(package='robot_model_server_ros',
                                   executable='robot_model_server_ros',

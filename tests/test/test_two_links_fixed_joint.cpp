@@ -39,23 +39,18 @@
 
 static constexpr double EPS = 0.01;
 
-TEST(test_publisher, test_two_joints)
+TEST(TestPublisher, TestTwoJoints)
 {
     auto node = rclcpp::Node::make_shared("rsp_test_two_links_fixed_joint", "test_fixed_joint");
 
-    rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
+    const rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
     tf2_ros::Buffer buffer(clock);
-    tf2_ros::TransformListener tfl(buffer, node, true);
+    const tf2_ros::TransformListener tfl(buffer, node, true);
 
-    for (unsigned int i = 0; i < 100 && !buffer.canTransform("link1", "link2", rclcpp::Time()); ++i)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    ASSERT_TRUE(buffer.canTransform("link1", "link2", rclcpp::Time()));
+    ASSERT_TRUE(buffer.canTransform("link1", "link2", rclcpp::Time(), rclcpp::Duration(std::chrono::seconds(3))));
     ASSERT_FALSE(buffer.canTransform("base_link", "wim_link", rclcpp::Time()));
 
-    geometry_msgs::msg::TransformStamped t = buffer.lookupTransform("link1", "link2", rclcpp::Time());
+    const geometry_msgs::msg::TransformStamped t = buffer.lookupTransform("link1", "link2", rclcpp::Time());
     EXPECT_NEAR(t.transform.translation.x, 5.0, EPS);
     EXPECT_NEAR(t.transform.translation.y, 0.0, EPS);
     EXPECT_NEAR(t.transform.translation.z, 0.0, EPS);
@@ -66,7 +61,7 @@ int main(int argc, char **argv)
     testing::InitGoogleTest(&argc, argv);
     rclcpp::init(argc, argv);
 
-    int res = RUN_ALL_TESTS();
+    const int res = RUN_ALL_TESTS();
 
     rclcpp::shutdown();
 

@@ -46,19 +46,19 @@
 
 static constexpr double EPS = 0.01;
 
-TEST(test_publisher, test_two_joints)
+TEST(TestPublisher, TestTwoJoints)
 {
     auto node = rclcpp::Node::make_shared("rsp_test_two_links_moving_joint", "test_moving_joint");
 
-    rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
+    const rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
     tf2_ros::Buffer buffer(clock);
-    tf2_ros::TransformListener tfl(buffer, node, true);
+    const tf2_ros::TransformListener tfl(buffer, node, true);
 
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub =
+    const rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub =
             node->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
     sensor_msgs::msg::JointState js_msg;
-    js_msg.name.push_back("joint1");
-    js_msg.position.push_back(M_PI);
+    js_msg.name.emplace_back("joint1");
+    js_msg.position.emplace_back(M_PI);
     js_msg.header.stamp = node->now();
 
     for (unsigned int i = 0; i < 100 && !buffer.canTransform("link1", "link2", rclcpp::Time()); ++i)
@@ -70,7 +70,7 @@ TEST(test_publisher, test_two_joints)
     ASSERT_TRUE(buffer.canTransform("link1", "link2", rclcpp::Time()));
     ASSERT_FALSE(buffer.canTransform("base_link", "wim_link", rclcpp::Time()));
 
-    geometry_msgs::msg::TransformStamped t = buffer.lookupTransform("link1", "link2", rclcpp::Time());
+    const geometry_msgs::msg::TransformStamped t = buffer.lookupTransform("link1", "link2", rclcpp::Time());
     EXPECT_NEAR(t.transform.translation.x, 5.0, EPS);
     EXPECT_NEAR(t.transform.translation.y, 0.0, EPS);
     EXPECT_NEAR(t.transform.translation.z, 0.0, EPS);
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     testing::InitGoogleTest(&argc, argv);
     rclcpp::init(argc, argv);
 
-    int res = RUN_ALL_TESTS();
+    const int res = RUN_ALL_TESTS();
 
     rclcpp::shutdown();
 

@@ -99,24 +99,24 @@ namespace robot_model_server_core
 
         void computeMimicJoints(std::map<std::string, double> &joint_positions) const;
 
-        std::vector<Transform> getTransforms(
+        [[nodiscard]] std::vector<Transform> getTransforms(
                 const std::map<std::string, double> &joint_positions,
                 const Time &time,
                 const std::string &frame_prefix) const;
 
-        std::vector<Transform> getFixedTransforms(const Time &time, const std::string &frame_prefix) const;
+        [[nodiscard]] std::vector<Transform> getFixedTransforms(const Time &time, const std::string &frame_prefix) const;
 
-        const MimicMap &getMimicMap() const
+        [[nodiscard]] const MimicMap &getMimicMap() const
         {
             return mimic_;
         }
 
-        const std::map<std::string, SegmentPair> &getSegments() const
+        [[nodiscard]] const std::map<std::string, SegmentPair> &getSegments() const
         {
             return segments_;
         }
 
-        const std::map<std::string, SegmentPair> &getFixedSegments() const
+        [[nodiscard]] const std::map<std::string, SegmentPair> &getFixedSegments() const
         {
             return segments_fixed_;
         }

@@ -26,6 +26,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# pylint: disable=duplicate-code
+
 import os
 import unittest
 
@@ -52,7 +54,7 @@ def generate_test_description():
     )
 
     urdf_file = os.path.join(os.path.dirname(__file__), 'two_links_moving_joint.urdf')
-    with open(urdf_file, 'r') as infp:
+    with open(urdf_file, 'r', encoding='utf-8') as infp:
         robot_desc = infp.read()
 
     params = {'robot_description': robot_desc}
