@@ -96,7 +96,7 @@ namespace robot_model_server_ros
 
         auto description_msg = std::make_unique<std_msgs::msg::String>();
         description_msg->data = urdf_xml;
-        description_pub_->publish(std::move(description_msg));
+        description_pub_->publish(std::move(description_msg)); // NOLINT
 
         publish_frequency_ = this->declare_parameter("publish_frequency", 20.0);
         if (!robot_model_server_core::RobotModelCore::checkValidPubFreq(publish_frequency_))

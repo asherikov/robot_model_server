@@ -39,6 +39,7 @@
 #include "kdl/tree.hpp"
 #include "kdl_parser/kdl_parser.hpp"
 
+// cppcheck-suppress preprocessorErrorDirective
 #if __has_include(<urdf/model.hpp>)
 #    include "urdf/model.hpp"
 #else
@@ -137,7 +138,7 @@ namespace robot_model_server_core
             for (const KDL::SegmentMap::const_iterator &child_it : children)
             {
                 const KDL::Segment &child = GetTreeElementSegment(child_it->second);
-                SegmentPair s(GetTreeElementSegment(child_it->second), root, child.getName());
+                const SegmentPair s(GetTreeElementSegment(child_it->second), root, child.getName());
                 if (child.getJoint().getType() == KDL::Joint::None)
                 {
                     if (model.getJoint(child.getJoint().getName())
