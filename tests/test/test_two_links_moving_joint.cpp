@@ -40,6 +40,7 @@
 #include "gtest/gtest.h"
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/version.h"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "tf2_ros/buffer.hpp"
 #include "tf2_ros/transform_listener.hpp"
@@ -52,7 +53,12 @@ TEST(TestPublisher, TestTwoJoints)
 
     const rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
     tf2_ros::Buffer buffer(clock);
+#if RCLCPP_VERSION_GTE(21, 0, 0)
+    const tf2_ros::TransformListener tfl(
+        buffer, tf2_ros::TransformListener::RequiredInterfaces(*node), true);
+#else
     const tf2_ros::TransformListener tfl(buffer, node, true);
+#endif
 
     const rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub =
             node->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);

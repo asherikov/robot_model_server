@@ -34,6 +34,7 @@
 #include "gtest/gtest.h"
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/version.h"
 #include "tf2_ros/buffer.hpp"
 #include "tf2_ros/transform_listener.hpp"
 
@@ -45,7 +46,12 @@ TEST(TestPublisher, TestTwoLinksFixedJointPrefix)
 
     const rclcpp::Clock::SharedPtr clock = std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME);
     tf2_ros::Buffer buffer(clock);
+#if RCLCPP_VERSION_GTE(21, 0, 0)
+    const tf2_ros::TransformListener tfl(
+        buffer, tf2_ros::TransformListener::RequiredInterfaces(*node), true);
+#else
     const tf2_ros::TransformListener tfl(buffer, node, true);
+#endif
 
     ASSERT_TRUE(buffer.canTransform(
             "my_prefix/link1", "my_prefix/link2", rclcpp::Time(), rclcpp::Duration(std::chrono::seconds(3))));

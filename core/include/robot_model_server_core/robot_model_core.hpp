@@ -33,16 +33,10 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
-
-#include "kdl/tree.hpp"
-#include "urdf/model.h"
 
 namespace robot_model_server_core
 {
-
-    using MimicMap = std::map<std::string, urdf::JointMimicSharedPtr>;
 
     using Time = std::chrono::nanoseconds;
 
@@ -70,23 +64,16 @@ namespace robot_model_server_core
         Time stamp{};
     };
 
-    class SegmentPair final
-    {
-    public:
-        explicit SegmentPair(const KDL::Segment &p_segment, std::string p_root, std::string p_tip)
-          : segment(p_segment), root(std::move(p_root)), tip(std::move(p_tip))
-        {
-        }
-
-        KDL::Segment segment;
-        std::string root;
-        std::string tip;
-    };
-
     class RobotModelCore
     {
     public:
-        RobotModelCore() = default;
+        RobotModelCore();
+        ~RobotModelCore();
+
+        RobotModelCore(const RobotModelCore &) = delete;
+        RobotModelCore & operator=(const RobotModelCore &) = delete;
+        RobotModelCore(RobotModelCore &&) = default;
+        RobotModelCore & operator=(RobotModelCore &&) = default;
 
         void setupURDF(const std::string &urdf_xml);
 
@@ -106,29 +93,9 @@ namespace robot_model_server_core
 
         [[nodiscard]] std::vector<Transform> getFixedTransforms(const Time &time, const std::string &frame_prefix) const;
 
-        [[nodiscard]] const MimicMap &getMimicMap() const
-        {
-            return mimic_;
-        }
-
-        [[nodiscard]] const std::map<std::string, SegmentPair> &getSegments() const
-        {
-            return segments_;
-        }
-
-        [[nodiscard]] const std::map<std::string, SegmentPair> &getFixedSegments() const
-        {
-            return segments_fixed_;
-        }
-
     private:
-        static KDL::Tree parseURDF(const std::string &urdf_xml, urdf::Model &model);
-
-        void addChildren(const urdf::Model &model, const KDL::SegmentMap::const_iterator segment);
-
-        std::map<std::string, SegmentPair> segments_;
-        std::map<std::string, SegmentPair> segments_fixed_;
-        MimicMap mimic_;
+        class Implementation;
+        std::unique_ptr<Implementation> pimpl_;
     };
 
 }  // namespace robot_model_server_core

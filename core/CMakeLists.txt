@@ -27,7 +27,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC
+  PRIVATE
     kdl_parser::kdl_parser
     orocos-kdl
     urdf::urdf
@@ -70,10 +70,6 @@ file(
   WRITE
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
 "include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
-"include(CMakeFindDependencyMacro)\n"
-"find_dependency(kdl_parser)\n"
-"find_dependency(orocos_kdl)\n"
-"find_dependency(urdf)"
 )
 
 install(

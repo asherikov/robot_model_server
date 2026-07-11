@@ -23,8 +23,6 @@
 
   <build_depend>liborocos-kdl-dev</build_depend>
 
-  <build_export_depend>liborocos-kdl-dev</build_export_depend>
-
   <export>
     <build_type>ament_cmake</build_type>
   </export>
