@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(robot_model_server_core VERSION 0.1.0 LANGUAGES CXX)
+project(robot_model_server_core VERSION 0.1.0)
 
 include(ccws_set_cmake_flags OPTIONAL RESULT_VARIABLE CCWS_ON)
 if(NOT CCWS_ON)
@@ -16,17 +16,19 @@ if(NOT CCWS_ON)
   endif()
 endif()
 
-find_package(ament_cmake REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(kdl_parser REQUIRED)
 find_package(orocos_kdl REQUIRED)
 find_package(urdf REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
-  src/robot_model_core.cpp)
+    src/robot_model_server.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
 target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    Eigen3::Eigen
   PRIVATE
     kdl_parser::kdl_parser
     orocos-kdl
@@ -78,5 +80,3 @@ install(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
   DESTINATION share/${PROJECT_NAME}/
 )
-
-ament_package()

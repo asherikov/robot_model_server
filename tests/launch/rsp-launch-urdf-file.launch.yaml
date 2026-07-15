@@ -26,29 +26,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# This launch file shows how to launch robot_model_server with a URDF
-# first processed using the xacro python API.
-# pylint: disable=duplicate-code
-
-import os
-
-import launch
-import launch_ros.actions
-from launch_ros.substitutions import FindPackageShare
-
-import xacro
-
-
-def generate_launch_description():
-    pkg_share = FindPackageShare('robot_model_server_tests').find('robot_model_server_tests')
-    urdf_dir = os.path.join(pkg_share, 'urdf')
-    xacro_file = os.path.join(urdf_dir, 'test-desc.urdf.xacro')
-    doc = xacro.process_file(xacro_file)
-    robot_desc = doc.toprettyxml(indent='  ')
-    params = {'robot_description': robot_desc}
-    rsp = launch_ros.actions.Node(package='robot_model_server_ros',
-                                  executable='robot_model_server_ros',
-                                  output='both',
-                                  parameters=[params])
-
-    return launch.LaunchDescription([rsp])
+launch:
+- node:
+    pkg: 'robot_model_server_ros'
+    exec: 'robot_model_server_ros'
+    output: 'both'
+    param:
+    - name: 'model.description'
+      value: "$(command 'cat $(find-pkg-share robot_model_server_tests)/urdf/test-desc.urdf')"

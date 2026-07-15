@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Open Source Robotics Foundation, Inc.
+# Copyright (c) 2024 Open Source Robotics Foundation, Inc.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -26,8 +26,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# pylint: disable=duplicate-code
-
 import os
 import unittest
 
@@ -47,29 +45,30 @@ def generate_test_description():
 
     process_under_test = launch.actions.ExecuteProcess(
         cmd=[launch.substitutions.LaunchConfiguration('test_exe'),
-             '--ros-args', '-r', '__ns:=/test_fixed_joint_prefix',
-             '-r', '/tf:=/test_fixed_joint_prefix/tf',
-             '-r', '/tf_static:=/test_fixed_joint_prefix/tf_static'],
+             '--ros-args', '-r', '__ns:=/test_inertial',
+             '-r', '/tf:=/test_inertial/tf',
+             '-r', '/tf_static:=/test_inertial/tf_static'],
         output='screen',
     )
 
-    urdf_file = os.path.join(os.path.dirname(__file__), 'two_links_fixed_joint.urdf')
+    urdf_file = os.path.join(os.path.dirname(__file__), 'inertial.urdf')
     with open(urdf_file, 'r', encoding='utf-8') as infp:
         robot_desc = infp.read()
 
     params = {
         'model.description': robot_desc,
-        'transform.frame_prefix': 'my_prefix/',
+        'visualization.inertia': True,
+        'inertia.cumulative': True,
     }
     node_robot_model_server = Node(
         package='robot_model_server_ros',
         executable='robot_model_server_ros',
-        namespace='test_fixed_joint_prefix',
+        namespace='test_inertial',
         output='screen',
         parameters=[params],
         remappings=[
-            ('/tf', '/test_fixed_joint_prefix/tf'),
-            ('/tf_static', '/test_fixed_joint_prefix/tf_static'),
+            ('/tf', '/test_inertial/tf'),
+            ('/tf_static', '/test_inertial/tf_static'),
         ]
     )
 
@@ -82,20 +81,19 @@ def generate_test_description():
     ]), locals()
 
 
-class TestFixedJoint(unittest.TestCase):
+class TestInertial(unittest.TestCase):
 
     def test_termination(self, process_under_test, proc_info):
-        proc_info.assertWaitForShutdown(process=process_under_test, timeout=10)
+        proc_info.assertWaitForShutdown(process=process_under_test, timeout=20)
 
 
 @launch_testing.post_shutdown_test()
-class FixedJointTestAfterShutdown(unittest.TestCase):
+class InertialTestAfterShutdown(unittest.TestCase):
 
     def test_exit_code(self, process_under_test, proc_info):
-        # Check that all processes in the launch (in this case, there's just one) exit
-        # with code 0
         launch_testing.asserts.assertExitCodes(
             proc_info,
             [launch_testing.asserts.EXIT_OK],
             process_under_test
         )
+

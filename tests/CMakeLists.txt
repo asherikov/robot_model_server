@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(robot_model_server_tests VERSION 0.1.0 LANGUAGES CXX)
+project(robot_model_server_tests VERSION 0.1.0)
 
 include(ccws_set_cmake_flags OPTIONAL RESULT_VARIABLE CCWS_ON)
 if(NOT CCWS_ON)
@@ -32,6 +32,8 @@ if(BUILD_TESTING)
   find_package(rclcpp REQUIRED)
   find_package(sensor_msgs REQUIRED)
   find_package(tf2_ros REQUIRED)
+  find_package(geometry_msgs REQUIRED)
+  find_package(visualization_msgs REQUIRED)
 
   add_executable(test_two_links_fixed_joint test/test_two_links_fixed_joint.cpp)
   target_include_directories(test_two_links_fixed_joint PRIVATE ${GTEST_INCLUDE_DIRS})
@@ -50,13 +52,29 @@ if(BUILD_TESTING)
   target_link_libraries(test_two_links_moving_joint PRIVATE ${GTEST_LIBRARIES} rclcpp::rclcpp sensor_msgs::sensor_msgs tf2_ros::tf2_ros)
   add_launch_test(test/two_links_moving_joint-launch.py
     ARGS "test_exe:=$<TARGET_FILE:test_two_links_moving_joint>")
+
+  add_executable(test_inertial test/test_inertial.cpp)
+  target_include_directories(test_inertial PRIVATE ${GTEST_INCLUDE_DIRS})
+  target_link_libraries(test_inertial PRIVATE
+    ${GTEST_LIBRARIES} rclcpp::rclcpp geometry_msgs::geometry_msgs
+    tf2_ros::tf2_ros visualization_msgs::visualization_msgs)
+  add_launch_test(test/inertial-launch.py
+    ARGS "test_exe:=$<TARGET_FILE:test_inertial>")
 endif()
 
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(DIRECTORY rviz
+  DESTINATION share/${PROJECT_NAME}
+)
+
 install(DIRECTORY urdf
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY data
   DESTINATION share/${PROJECT_NAME}
 )
 

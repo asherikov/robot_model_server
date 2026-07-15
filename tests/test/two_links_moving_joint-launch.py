@@ -57,7 +57,7 @@ def generate_test_description():
     with open(urdf_file, 'r', encoding='utf-8') as infp:
         robot_desc = infp.read()
 
-    params = {'robot_description': robot_desc}
+    params = {'model.description': robot_desc}
     node_robot_model_server = Node(
         package='robot_model_server_ros',
         executable='robot_model_server_ros',

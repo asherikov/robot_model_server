@@ -26,29 +26,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# This launch file shows how to launch robot_model_server with a simple
-# URDF read from a file (found using FindPackageShare) and passed as the
-# 'robot_description' parameter.
-# pylint: disable=duplicate-code
-
-import os
-
-import launch
-import launch_ros.actions
-from launch_ros.substitutions import FindPackageShare
-
-
-def generate_launch_description():
-    pkg_share = FindPackageShare('robot_model_server_tests').find('robot_model_server_tests')
-    urdf_dir = os.path.join(pkg_share, 'urdf')
-    urdf_file = os.path.join(urdf_dir, 'test-desc.urdf')
-    with open(urdf_file, 'r', encoding='utf-8') as infp:
-        robot_desc = infp.read()
-
-    params = {'robot_description': robot_desc}
-    rsp = launch_ros.actions.Node(package='robot_model_server_ros',
-                                  executable='robot_model_server_ros',
-                                  output='both',
-                                  parameters=[params])
-
-    return launch.LaunchDescription([rsp])
+launch:
+- node:
+    pkg: 'robot_model_server_ros'
+    exec: 'robot_model_server_ros'
+    output: 'both'
+    param:
+    - name: 'model.description'
+      value: |-
+        <?xml version='1.0'?>
+        <robot name='test'>
+          <link name='base_link'>
+            <visual>
+              <geometry>
+                <cylinder length='0.6' radius='0.2'/>
+              </geometry>
+              <material name='blue'/>
+            </visual>
+          </link>
+        </robot>

@@ -26,53 +26,52 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef ROBOT_MODEL_SERVER_ROS_ROBOT_MODEL_SERVER_ROS_HPP_
-#define ROBOT_MODEL_SERVER_ROS_ROBOT_MODEL_SERVER_ROS_HPP_
+#pragma once
 
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "builtin_interfaces/msg/time.hpp"
+#include "geometry_msgs/msg/inertia.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "robot_model_server_core/robot_model_core.hpp"
+#include "robot_model_server/robot_model_server.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_ros/static_transform_broadcaster.hpp"
 #include "tf2_ros/transform_broadcaster.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace robot_model_server_ros
 {
-
-    class RobotStatePublisher : public rclcpp::Node
+    class Publisher : public rclcpp::Node
     {
     public:
-        explicit RobotStatePublisher(const rclcpp::NodeOptions &options);
+        explicit Publisher(const rclcpp::NodeOptions &options);
 
     protected:
-        void publishTransforms(
-                const std::map<std::string, double> &joint_positions,
-                const builtin_interfaces::msg::Time &time);
-
         void publishFixedTransforms();
+
+        void publishInertialDecompositions();
+
+        void publishCumulativeInertial();
 
         void callbackJointState(const sensor_msgs::msg::JointState::ConstSharedPtr &state);
 
-        robot_model_server_core::RobotModelCore core_;
+        robot_model_server::Model core_;
 
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr description_pub_;
+        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr inertial_marker_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Inertia>::SharedPtr cumulative_inertia_pub_;
         rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
         rclcpp::Time last_callback_time_;
         std::map<std::string, builtin_interfaces::msg::Time> last_publish_time_;
         double publish_frequency_;
         bool ignore_timestamp_;
-        std::string frame_prefix_;
+        double visualization_alpha_;
+        robot_model_server::Model::Parameters parameters_;
     };
-
 }  // namespace robot_model_server_ros
-
-#endif  // ROBOT_MODEL_SERVER_ROS_ROBOT_MODEL_SERVER_ROS_HPP_
