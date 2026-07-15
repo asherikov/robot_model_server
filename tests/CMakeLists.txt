@@ -60,6 +60,12 @@ if(BUILD_TESTING)
     tf2_ros::tf2_ros visualization_msgs::visualization_msgs)
   add_launch_test(test/inertial-launch.py
     ARGS "test_exe:=$<TARGET_FILE:test_inertial>")
+
+  add_executable(test_sdf test/test_sdf.cpp)
+  target_include_directories(test_sdf PRIVATE ${GTEST_INCLUDE_DIRS})
+  target_link_libraries(test_sdf PRIVATE ${GTEST_LIBRARIES} rclcpp::rclcpp tf2_ros::tf2_ros)
+  add_launch_test(test/sdf-launch.py
+    ARGS "test_exe:=$<TARGET_FILE:test_sdf>")
 endif()
 
 install(DIRECTORY launch
@@ -71,10 +77,6 @@ install(DIRECTORY rviz
 )
 
 install(DIRECTORY urdf
-  DESTINATION share/${PROJECT_NAME}
-)
-
-install(DIRECTORY data
   DESTINATION share/${PROJECT_NAME}
 )
 
