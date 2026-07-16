@@ -40,6 +40,10 @@ functionality is almost identical to the one provided by default `rviz` robot
 model plugin, but gives more control to the user and includes cumulative
 inertial parameters.
 
+Note that some of the inertias are not specified correctly (red) in the model
+used for visualization, so the cumulative inertial (blue) is also wrong.
+![visualization](doc/rviz_inertial.png)
+
 
 ROS node parameters
 -------------------
