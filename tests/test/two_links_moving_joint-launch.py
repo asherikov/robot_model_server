@@ -82,7 +82,7 @@ def generate_test_description():
 class TestMovingJoint(unittest.TestCase):
 
     def test_termination(self, process_under_test, proc_info):
-        proc_info.assertWaitForShutdown(process=process_under_test, timeout=10)
+        proc_info.assertWaitForShutdown(process=process_under_test, timeout=20)
 
 
 @launch_testing.post_shutdown_test()

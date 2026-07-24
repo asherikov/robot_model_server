@@ -65,10 +65,10 @@ TEST(TestPublisher, TestTwoJoints)
     sensor_msgs::msg::JointState js_msg;
     js_msg.name.emplace_back("joint1");
     js_msg.position.emplace_back(M_PI);
-    js_msg.header.stamp = node->now();
 
     for (unsigned int i = 0; i < 100 && !buffer.canTransform("link1", "link2", rclcpp::Time()); ++i)
     {
+        js_msg.header.stamp = node->now();
         pub->publish(js_msg);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
