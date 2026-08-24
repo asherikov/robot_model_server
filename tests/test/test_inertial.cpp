@@ -80,11 +80,11 @@ TEST(TestInertial, TestInertialMarkers)
             bool has_link2 = false;
             for (const auto & marker : array.markers)
             {
-                if (marker.ns == "link1")
+                if (marker.ns == "link1/inertia")
                 {
                     has_link1 = true;
                 }
-                if (marker.ns == "link2")
+                if (marker.ns == "link2/inertia")
                 {
                     has_link2 = true;
                 }
@@ -104,11 +104,11 @@ TEST(TestInertial, TestInertialMarkers)
     int link2_idx = -1;
     for (size_t i = 0; i < markers.size(); ++i)
     {
-        if (markers.at(i).ns == "link1")
+        if (markers.at(i).ns == "link1/inertia")
         {
             link1_idx = static_cast<int>(i);
         }
-        else if (markers.at(i).ns == "link2")
+        else if (markers.at(i).ns == "link2/inertia")
         {
             link2_idx = static_cast<int>(i);
         }
@@ -230,7 +230,7 @@ TEST(TestInertial, TestCumulativeInertiaVisual)
         {
             for (const auto & marker : array.markers)
             {
-                if (marker.ns == "cumulative_inertial")
+                if (marker.ns == "cumulative_inertial/inertia")
                 {
                     cumulative_marker = marker;
                     found_cumulative = true;
@@ -258,6 +258,136 @@ TEST(TestInertial, TestCumulativeInertiaVisual)
     EXPECT_NEAR(cumulative_marker.color.r, 0.2, EPS);
     EXPECT_NEAR(cumulative_marker.color.g, 0.2, EPS);
     EXPECT_NEAR(cumulative_marker.color.b, 0.8, EPS);
+}
+
+TEST(TestInertial, TestCenterOfMassMarkers)
+{
+    auto node = rclcpp::Node::make_shared("rsp_test_com");
+
+    const rclcpp::QoS latched_qos = rclcpp::QoS(1).transient_local();
+
+    std::vector<visualization_msgs::msg::MarkerArray> received_markers;
+    auto marker_sub = node->create_subscription<visualization_msgs::msg::MarkerArray>(
+        "/test_inertial/robot_model_server/inertia_visual", latched_qos,
+        [&received_markers](const visualization_msgs::msg::MarkerArray::ConstSharedPtr &msg) {
+            received_markers.push_back(*msg);
+        });
+
+    rclcpp::executors::SingleThreadedExecutor executor;
+    executor.add_node(node);
+
+    const auto start = std::chrono::steady_clock::now();
+    bool found_link1_com = false;
+    bool found_link2_com = false;
+    visualization_msgs::msg::Marker link1_com;
+    visualization_msgs::msg::Marker link2_com;
+    while ((!found_link1_com || !found_link2_com) &&
+           std::chrono::steady_clock::now() - start < std::chrono::seconds(10))
+    {
+        executor.spin_some(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        for (const auto & array : received_markers)
+        {
+            for (const auto & marker : array.markers)
+            {
+                if (marker.ns == "link1/com" && !found_link1_com)
+                {
+                    link1_com = marker;
+                    found_link1_com = true;
+                }
+                if (marker.ns == "link2/com" && !found_link2_com)
+                {
+                    link2_com = marker;
+                    found_link2_com = true;
+                }
+            }
+        }
+    }
+
+    ASSERT_TRUE(found_link1_com);
+    ASSERT_TRUE(found_link2_com);
+
+    EXPECT_EQ(link1_com.type, visualization_msgs::msg::Marker::SPHERE);
+    EXPECT_EQ(link2_com.type, visualization_msgs::msg::Marker::SPHERE);
+
+    EXPECT_NEAR(link1_com.pose.position.x, 0.0, EPS);
+    EXPECT_NEAR(link1_com.pose.position.y, 0.0, EPS);
+    EXPECT_NEAR(link1_com.pose.position.z, 0.0, EPS);
+
+    EXPECT_NEAR(link2_com.pose.position.x, 0.5, EPS);
+    EXPECT_NEAR(link2_com.pose.position.y, 0.0, EPS);
+    EXPECT_NEAR(link2_com.pose.position.z, 0.0, EPS);
+
+    constexpr double DENSITY_OF_LEAD = 11340.0;
+    const double expected_d1 = 2.0 * std::cbrt(0.75 * 1.0 / (M_PI * DENSITY_OF_LEAD));
+    const double expected_d2 = 2.0 * std::cbrt(0.75 * 2.0 / (M_PI * DENSITY_OF_LEAD));
+    EXPECT_NEAR(link1_com.scale.x, expected_d1, EPS);
+    EXPECT_NEAR(link1_com.scale.y, expected_d1, EPS);
+    EXPECT_NEAR(link1_com.scale.z, expected_d1, EPS);
+    EXPECT_NEAR(link2_com.scale.x, expected_d2, EPS);
+    EXPECT_NEAR(link2_com.scale.y, expected_d2, EPS);
+    EXPECT_NEAR(link2_com.scale.z, expected_d2, EPS);
+
+    EXPECT_NEAR(link1_com.color.a, 0.5, EPS);
+    EXPECT_NEAR(link2_com.color.a, 0.5, EPS);
+}
+
+TEST(TestInertial, TestCumulativeCenterOfMassVisual)
+{
+    auto node = rclcpp::Node::make_shared("rsp_test_cum_com");
+
+    const rclcpp::QoS latched_qos = rclcpp::QoS(1).transient_local();
+
+    std::vector<visualization_msgs::msg::MarkerArray> received_markers;
+    auto marker_sub = node->create_subscription<visualization_msgs::msg::MarkerArray>(
+        "/test_inertial/robot_model_server/inertia_visual", latched_qos,
+        [&received_markers](const visualization_msgs::msg::MarkerArray::ConstSharedPtr &msg) {
+            received_markers.push_back(*msg);
+        });
+
+    rclcpp::executors::SingleThreadedExecutor executor;
+    executor.add_node(node);
+
+    const auto start = std::chrono::steady_clock::now();
+    bool found = false;
+    visualization_msgs::msg::Marker cumulative_com;
+    while (!found && std::chrono::steady_clock::now() - start < std::chrono::seconds(10))
+    {
+        executor.spin_some(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        for (const auto & array : received_markers)
+        {
+            for (const auto & marker : array.markers)
+            {
+                if (marker.ns == "cumulative_inertial/com")
+                {
+                    cumulative_com = marker;
+                    found = true;
+                    break;
+                }
+            }
+            if (found)
+            {
+                break;
+            }
+        }
+    }
+
+    ASSERT_TRUE(found);
+
+    EXPECT_EQ(cumulative_com.type, visualization_msgs::msg::Marker::SPHERE);
+    EXPECT_EQ(cumulative_com.header.frame_id, "link1");
+    EXPECT_NEAR(cumulative_com.pose.position.x, 1.0, EPS);
+    EXPECT_NEAR(cumulative_com.pose.position.y, 0.0, EPS);
+    EXPECT_NEAR(cumulative_com.pose.position.z, 0.0, EPS);
+
+    constexpr double DENSITY_OF_LEAD = 11340.0;
+    const double expected_d = 2.0 * std::cbrt(0.75 * 3.0 / (M_PI * DENSITY_OF_LEAD));
+    EXPECT_NEAR(cumulative_com.scale.x, expected_d, EPS);
+    EXPECT_NEAR(cumulative_com.scale.y, expected_d, EPS);
+    EXPECT_NEAR(cumulative_com.scale.z, expected_d, EPS);
+
+    EXPECT_NEAR(cumulative_com.color.a, 0.5, EPS);
 }
 
 int main(int argc, char **argv)

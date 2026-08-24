@@ -96,7 +96,7 @@ namespace robot_model_server_ros
             return result;
         }
 
-        visualization_msgs::msg::Marker toMarker(
+        visualization_msgs::msg::Marker toInertiaMarker(
                 const robot_model_server::InertialDecomposition &dec,
                 const std::string &ns,
                 const int id,
@@ -149,6 +149,58 @@ namespace robot_model_server_ros
             return marker;
         }
 
+        visualization_msgs::msg::Marker toCenterOfMassMarker(
+                const robot_model_server::InertialDecomposition &dec,
+                const std::string &ns,
+                const int id,
+                const std_msgs::msg::ColorRGBA &normal_color,
+                const std_msgs::msg::ColorRGBA &scaled_color,
+                const std_msgs::msg::ColorRGBA &tiny_color,
+                const float alpha)
+        {
+            visualization_msgs::msg::Marker marker;
+            marker.header.frame_id = dec.link_name;
+            marker.ns = ns;
+            marker.id = id;
+            marker.type = visualization_msgs::msg::Marker::SPHERE;
+            marker.action = visualization_msgs::msg::Marker::ADD;
+            marker.frame_locked = true;
+
+            copyToVector3(dec.center_of_mass, marker.pose.position);
+            marker.pose.orientation.w = 1.0;
+
+            constexpr double MASS_MIN = 0.001;
+            constexpr double MASS_MAX = 1000.0;
+            constexpr double DENSITY_OF_LEAD = 11340.0;
+
+            const double mass = std::clamp(dec.mass, MASS_MIN, MASS_MAX);
+
+            // same as rviz (rviz_default_plugins/robot/robot_link.cpp)
+            const double diameter = 2.0 * std::cbrt(0.75 * mass / (M_PI * DENSITY_OF_LEAD));
+            marker.scale.x = diameter;
+            marker.scale.y = diameter;
+            marker.scale.z = diameter;
+
+            if (dec.mass < MASS_MIN)
+            {
+                marker.color = tiny_color;
+            }
+            else if (dec.mass > MASS_MAX)
+            {
+                marker.color = scaled_color;
+            }
+            else
+            {
+                marker.color = normal_color;
+            }
+            marker.color.r *= 1.2;
+            marker.color.g *= 1.2;
+            marker.color.b *= 1.2;
+            marker.color.a = alpha;
+
+            return marker;
+        }
+
         visualization_msgs::msg::MarkerArray toMarkerArray(
                 const std::vector<robot_model_server::InertialDecomposition> &decompositions,
                 const float alpha)
@@ -167,13 +219,21 @@ namespace robot_model_server_ros
             tiny_color.b = 0.0;
 
             visualization_msgs::msg::MarkerArray result;
-            result.markers.reserve(decompositions.size());
+            result.markers.reserve(decompositions.size() * 2);
             for (size_t i = 0; i < decompositions.size(); ++i)
             {
-                result.markers.push_back(toMarker(
+                result.markers.push_back(toInertiaMarker(
                         decompositions.at(i),
-                        decompositions.at(i).link_name,
-                        static_cast<int>(i),
+                        decompositions.at(i).link_name + "/inertia",
+                        static_cast<int>(i * 2),
+                        normal_color,
+                        scaled_color,
+                        tiny_color,
+                        alpha));
+                result.markers.push_back(toCenterOfMassMarker(
+                        decompositions.at(i),
+                        decompositions.at(i).link_name + "/com",
+                        static_cast<int>((i * 2) + 1),
                         normal_color,
                         scaled_color,
                         tiny_color,
@@ -191,7 +251,19 @@ namespace robot_model_server_ros
             color.r = 0.2;
             color.g = 0.2;
             color.b = 0.8;
-            return toMarker(cumulative, "cumulative_inertial", id, color, color, color, alpha);
+            return toInertiaMarker(cumulative, "cumulative_inertial/inertia", id, color, color, color, alpha);
+        }
+
+        visualization_msgs::msg::Marker toCumulativeCenterOfMassMarker(
+                const robot_model_server::CumulativeInertial &cumulative,
+                const int id,
+                const float alpha)
+        {
+            std_msgs::msg::ColorRGBA color;
+            color.r = 0.2;
+            color.g = 0.2;
+            color.b = 0.8;
+            return toCenterOfMassMarker(cumulative, "cumulative_inertial/com", id, color, color, color, alpha);
         }
     }  // namespace
 
@@ -299,14 +371,16 @@ namespace robot_model_server_ros
     void Publisher::publishInertialDecompositions()
     {
         const auto &decompositions = core_.getInertialDecompositions();
-        auto marker_array = std::make_unique<visualization_msgs::msg::MarkerArray>(
-                toMarkerArray(decompositions, static_cast<float>(visualization_alpha_)));
+        const float alpha = static_cast<float>(visualization_alpha_);
+        auto marker_array =
+                std::make_unique<visualization_msgs::msg::MarkerArray>(toMarkerArray(decompositions, alpha));
+
         if (parameters_.init_cumulative_inertial)
         {
-            marker_array->markers.push_back(toCumulativeMarker(
-                    core_.getCumulativeInertial(),
-                    static_cast<int>(marker_array->markers.size()),
-                    static_cast<float>(visualization_alpha_)));
+            const int next_id = static_cast<int>(marker_array->markers.size());
+            marker_array->markers.push_back(toCumulativeMarker(core_.getCumulativeInertial(), next_id, alpha));
+            marker_array->markers.push_back(
+                    toCumulativeCenterOfMassMarker(core_.getCumulativeInertial(), next_id + 1, alpha));
         }
         inertial_marker_pub_->publish(std::move(marker_array));
     }
