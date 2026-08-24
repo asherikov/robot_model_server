@@ -189,10 +189,10 @@ TEST(TestInertial, TestCumulativeInertia)
     EXPECT_NEAR(inertia.izz, 1.8, EPS);
 
     ASSERT_TRUE(buffer.canTransform(
-        "link1", "cumulative_center_of_mass",
+        "link1", "robot_model_server/cumulative_center_of_mass",
         rclcpp::Time(), rclcpp::Duration(std::chrono::seconds(5))));
 
-    const auto com_tf = buffer.lookupTransform("link1", "cumulative_center_of_mass", rclcpp::Time());
+    const auto com_tf = buffer.lookupTransform("link1", "robot_model_server/cumulative_center_of_mass", rclcpp::Time());
     EXPECT_NEAR(com_tf.transform.translation.x, 1.0, EPS);
     EXPECT_NEAR(com_tf.transform.translation.y, 0.0, EPS);
     EXPECT_NEAR(com_tf.transform.translation.z, 0.0, EPS);

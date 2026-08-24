@@ -111,6 +111,7 @@ namespace robot_model_server_ros
             marker.id = id;
             marker.type = visualization_msgs::msg::Marker::CUBE;
             marker.action = visualization_msgs::msg::Marker::ADD;
+            marker.frame_locked = true;
 
             copyToVector3(dec.center_of_mass, marker.pose.position);
 
@@ -318,7 +319,7 @@ namespace robot_model_server_ros
         geometry_msgs::msg::TransformStamped com_tf;
         com_tf.header.stamp = this->now();
         com_tf.header.frame_id = root_frame;
-        com_tf.child_frame_id = parameters_.frame_prefix + "cumulative_center_of_mass";
+        com_tf.child_frame_id = parameters_.frame_prefix + "robot_model_server/cumulative_center_of_mass";
         copyToVector3(cumulative.center_of_mass, com_tf.transform.translation);
         com_tf.transform.rotation.x = 0.0;
         com_tf.transform.rotation.y = 0.0;

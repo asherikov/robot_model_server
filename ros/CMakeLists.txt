@@ -33,16 +33,16 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  builtin_interfaces::builtin_interfaces
   Eigen3::Eigen
-  geometry_msgs::geometry_msgs
-  rcl_interfaces::rcl_interfaces
-  rclcpp::rclcpp
   robot_model_server_core::robot_model_server_core
-  sensor_msgs::sensor_msgs
-  std_msgs::std_msgs
-  tf2_ros::tf2_ros
-  visualization_msgs::visualization_msgs
+  ${builtin_interfaces_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${rcl_interfaces_TARGETS}
+  ${rclcpp_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${tf2_ros_TARGETS}
+  ${visualization_msgs_TARGETS}
 )
 
 install(
