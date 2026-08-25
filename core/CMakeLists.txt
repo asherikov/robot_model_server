@@ -71,7 +71,9 @@ write_basic_package_version_file(
 file(
   WRITE
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-"include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
+  "include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
+  "include(CMakeFindDependencyMacro)\n"
+  "find_dependency(Eigen3)"
 )
 
 install(
