@@ -45,6 +45,15 @@ used for visualization, so the cumulative inertial (blue) is also wrong.
 ![visualization](doc/rviz_inertial.png)
 
 
+Transform between arbitrary frames
+----------------------------------
+
+The core library provides `getTransform` method that computes the transform
+between any two frames in the robot model. This method works similarly to TF
+framework: it traverses the kinematic chain between the specified source and
+target frames in order to compute transform.
+
+
 ROS node parameters
 -------------------
 

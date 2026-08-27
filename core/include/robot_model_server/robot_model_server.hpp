@@ -73,14 +73,17 @@ namespace robot_model_server
         Model();
         ~Model();
 
-        Model(Model &&) = default;
-        Model &operator=(Model &&) = default;
-
         void initialize(const std::string &urdf_xml, const Parameters &parameters);
 
         [[nodiscard]] std::vector<Transform> getTransforms(
                 const std::vector<std::string> &joint_names,
                 const std::vector<double> &joint_positions) const;
+
+        [[nodiscard]] Transform getTransform(
+                const std::string &source_frame,
+                const std::string &target_frame,
+                const std::vector<std::string> &joint_names = {},
+                const std::vector<double> &joint_positions = {}) const;
 
         [[nodiscard]] const std::vector<Transform> &getFixedTransforms() const;
 

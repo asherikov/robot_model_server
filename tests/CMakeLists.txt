@@ -30,6 +30,7 @@ if(BUILD_TESTING)
   ament_find_gtest()
 
   find_package(rclcpp REQUIRED)
+  find_package(robot_model_server_core REQUIRED)
   find_package(sensor_msgs REQUIRED)
   find_package(tf2_ros REQUIRED)
   find_package(geometry_msgs REQUIRED)
@@ -66,6 +67,17 @@ if(BUILD_TESTING)
   target_link_libraries(test_sdf PRIVATE ${GTEST_LIBRARIES} rclcpp::rclcpp tf2_ros::tf2_ros)
   add_launch_test(test/sdf-launch.py
     ARGS "test_exe:=$<TARGET_FILE:test_sdf>")
+
+  add_executable(test_get_transform_tf_cross_verify test/test_get_transform_tf_cross_verify.cpp)
+  target_include_directories(test_get_transform_tf_cross_verify PRIVATE ${GTEST_INCLUDE_DIRS})
+  target_link_libraries(test_get_transform_tf_cross_verify PRIVATE
+    ${GTEST_LIBRARIES} rclcpp::rclcpp sensor_msgs::sensor_msgs tf2_ros::tf2_ros
+    robot_model_server_core::robot_model_server_core)
+  add_launch_test(test/get_transform_tf_cross_verify-launch.py
+    ARGS "test_exe:=$<TARGET_FILE:test_get_transform_tf_cross_verify>")
+
+  ament_add_gtest(test_get_transform test/test_get_transform.cpp)
+  target_link_libraries(test_get_transform robot_model_server_core::robot_model_server_core)
 endif()
 
 install(DIRECTORY launch
@@ -74,6 +86,13 @@ install(DIRECTORY launch
 
 install(DIRECTORY rviz
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY test/
+  DESTINATION share/${PROJECT_NAME}/test
+  FILES_MATCHING
+  PATTERN "*.urdf"
+  PATTERN "*.sdf"
 )
 
 install(DIRECTORY urdf

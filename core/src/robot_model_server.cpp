@@ -29,13 +29,15 @@
 #include "robot_model_server/robot_model_server.hpp"
 
 #include <algorithm>
-#include <map>
+#include <functional>
 #include <memory>
 #include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <optional>
 
+#include "kdl/chain.hpp"
 #include "kdl/tree.hpp"
 #include "kdl_parser/kdl_parser.hpp"
 
@@ -45,6 +47,7 @@
 #else
 #    include "urdf/model.h"
 #endif
+
 
 namespace robot_model_server
 {
@@ -132,6 +135,43 @@ namespace robot_model_server
             values = std::move(sorted_values);
         }
 
+        size_t searchBinaryIndex(const std::vector<std::string> &container, const std::string &value)
+        {
+            auto it = std::lower_bound(container.cbegin(), container.cend(), value);
+            if (it != container.cend() && *it == value)
+            {
+                return static_cast<size_t>(std::distance(container.cbegin(), it));
+            }
+            return container.size();
+        }
+
+
+        template <class t_Joint>
+        std::optional<typename std::vector<t_Joint>::const_iterator> searchBinaryJoint(
+                const std::vector<t_Joint> &container,
+                const std::string &name)
+        {
+            auto it = std::lower_bound(
+                    container.cbegin(),
+                    container.cend(),
+                    name,
+                    [](const t_Joint &joint, const std::string &joint_name) { return joint.joint_name < joint_name; });
+            if (it != container.cend() && it->joint_name == name)
+            {
+                return (it);
+            }
+            return std::nullopt;
+        }
+
+
+        template <class t_Joint>
+        void sortJoints(std::vector<t_Joint> &container)
+        {
+            std::sort(
+                    container.begin(),
+                    container.end(),
+                    [](const t_Joint &a, const t_Joint &b) { return a.joint_name < b.joint_name; });
+        }
     }  // namespace
 
     class Model::Implementation
@@ -163,6 +203,11 @@ namespace robot_model_server
         {
             std::string joint_name;
             urdf::JointMimic mimic;
+
+            [[nodiscard]] double eval(const double value) const
+            {
+                return (value * mimic.multiplier) + mimic.offset;
+            }
         };
 
         std::vector<MovableJoint> movable_joints_;
@@ -201,18 +246,17 @@ namespace robot_model_server
             {
                 if (joint->mimic)
                 {
-                    mimic_joints_.push_back(MimicJoint{joint_name, *joint->mimic});
+                    mimic_joints_.push_back(MimicJoint{ joint_name, *joint->mimic });
                 }
             }
+            sortJoints(mimic_joints_);
 
             movable_joints_.clear();
             fixed_transforms_.clear();
             addChildren(model_, tree_.getRootSegment(), parameters.frame_prefix);
             frame_prefix_ = parameters.frame_prefix;
 
-            std::sort(movable_joints_.begin(), movable_joints_.end(), [](const MovableJoint &a, const MovableJoint &b) {
-                return a.joint_name < b.joint_name;
-            });
+            sortJoints(movable_joints_);
 
             inertial_decompositions_.clear();
             if (parameters.init_inertial)
@@ -221,7 +265,8 @@ namespace robot_model_server
             }
 
             cumulative_inertial_ = {};
-            cumulative_inertial_.link_name = frame_prefix_ + GetTreeElementSegment(tree_.getRootSegment()->second).getName();
+            cumulative_inertial_.link_name =
+                    frame_prefix_ + GetTreeElementSegment(tree_.getRootSegment()->second).getName();
             if (parameters.init_cumulative_inertial)
             {
                 computeCumulativeInertial(parameters.inertia_tolerance);
@@ -251,9 +296,9 @@ namespace robot_model_server
                 result.mass = inertial.mass;
 
                 Eigen::Matrix3d inertia_matrix;
-                inertia_matrix << inertial.ixx, inertial.ixy, inertial.ixz,
-                                  inertial.ixy, inertial.iyy, inertial.iyz,
-                                  inertial.ixz, inertial.iyz, inertial.izz;
+                inertia_matrix << inertial.ixx, inertial.ixy, inertial.ixz,  //
+                        inertial.ixy, inertial.iyy, inertial.iyz,            //
+                        inertial.ixz, inertial.iyz, inertial.izz;
 
                 const Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(inertia_matrix);
                 result.eigenvalues = solver.eigenvalues();
@@ -276,7 +321,7 @@ namespace robot_model_server
             for (const KDL::SegmentMap::const_iterator &child_it : children)
             {
                 const KDL::Segment &child = GetTreeElementSegment(child_it->second);
-                if (child.getJoint().getType() == KDL::Joint::None)
+                if (child.getJoint().getType() == KDL::Joint::Fixed)
                 {
                     const auto joint = model.getJoint(child.getJoint().getName());
                     if (!joint || joint->type != urdf::Joint::FLOATING)
@@ -290,7 +335,8 @@ namespace robot_model_server
                 }
                 else
                 {
-                    movable_joints_.emplace_back(child, child.getJoint().getName(), root, child.getName(), frame_prefix);
+                    movable_joints_.emplace_back(
+                            child, child.getJoint().getName(), root, child.getName(), frame_prefix);
                 }
                 addChildren(model, child_it, frame_prefix);
             }
@@ -311,12 +357,10 @@ namespace robot_model_server
 
             for (const auto &mimic_joint : mimic_joints_)
             {
-                const auto &mimic = mimic_joint.mimic;
-                auto it = std::lower_bound(names.begin(), names.end(), mimic.joint_name);
-                if (it != names.end() && *it == mimic.joint_name)
+                const size_t src_idx = searchBinaryIndex(names, mimic_joint.mimic.joint_name);
+                if (src_idx < names.size())
                 {
-                    const size_t src_idx = static_cast<size_t>(std::distance(names.begin(), it));
-                    const double pos = (positions.at(src_idx) * mimic.multiplier) + mimic.offset;
+                    const double pos = mimic_joint.eval(positions.at(src_idx));
                     names.push_back(mimic_joint.joint_name);
                     positions.push_back(pos);
                 }
@@ -325,19 +369,96 @@ namespace robot_model_server
             std::vector<Transform> tf_transforms;
             for (size_t i = 0; i < names.size() && i < positions.size(); ++i)
             {
-                auto it = std::lower_bound(
-                        movable_joints_.begin(), movable_joints_.end(), names.at(i),
-                        [](const MovableJoint &joint, const std::string &name) { return joint.joint_name < name; });
-                if (it != movable_joints_.end() && it->joint_name == names.at(i))
+                auto it = searchBinaryJoint(movable_joints_, names.at(i));
+                if (it.has_value())
                 {
                     Transform tf;
-                    kdlToIsometry(it->segment.pose(positions.at(i)), tf.transform);
-                    tf.frame_id = it->parent_frame_id;
-                    tf.child_frame_id = it->child_frame_id;
+                    kdlToIsometry(it.value()->segment.pose(positions.at(i)), tf.transform);
+                    tf.frame_id = it.value()->parent_frame_id;
+                    tf.child_frame_id = it.value()->child_frame_id;
                     tf_transforms.push_back(std::move(tf));
                 }
             }
             return tf_transforms;
+        }
+
+        [[nodiscard]] Transform getTransform(
+                const std::string &source_frame,
+                const std::string &target_frame,
+                const std::vector<std::string> &joint_names,
+                const std::vector<double> &joint_positions) const
+        {
+            if (joint_names.size() != joint_positions.size())
+            {
+                throw std::invalid_argument("joint_names and joint_positions must have the same size");
+            }
+
+            Transform result;
+            result.frame_id = source_frame;
+            result.child_frame_id = target_frame;
+
+            if (source_frame == target_frame)
+            {
+                return result;
+            }
+
+            const auto stripPrefix = [&](const std::string &frame) {
+                return (!frame_prefix_.empty() && frame.rfind(frame_prefix_, 0) == 0)
+                        ? frame.substr(frame_prefix_.size())
+                        : frame;
+            };
+            const std::string src = stripPrefix(source_frame);
+            const std::string tgt = stripPrefix(target_frame);
+
+            KDL::Chain chain;
+            if (!tree_.getChain(src, tgt, chain))
+            {
+                throw std::invalid_argument(
+                        "No kinematic chain found from '" + source_frame + "' to '" + target_frame + "'");
+            }
+
+            std::vector<std::string> sorted_names = joint_names;
+            std::vector<double> sorted_positions = joint_positions;
+            sortByKeys(sorted_names, sorted_positions);
+
+            std::function<double(const std::string &)> findPosition = [&](const std::string &name) -> double
+            {
+                const size_t src_idx = searchBinaryIndex(sorted_names, name);
+                if (src_idx < sorted_names.size())
+                {
+                    return sorted_positions.at(src_idx);
+                }
+
+
+                auto mimic_it = searchBinaryJoint(mimic_joints_, name);
+                if (mimic_it.has_value())
+                {
+                    const double src_pos = findPosition(mimic_it.value()->mimic.joint_name);
+                    return mimic_it.value()->eval(src_pos);
+                }
+
+                throw std::invalid_argument(
+                        "Joint '" + name + "' is required to compute the transform from '" + source_frame + "' to '"
+                        + target_frame + "' but was not provided in joint_names");
+            };
+
+            KDL::Frame frame = KDL::Frame::Identity();
+            for (unsigned int i = 0; i < chain.getNrOfSegments(); ++i)
+            {
+                const KDL::Segment &segment = chain.getSegment(i);
+                const KDL::Joint &joint = segment.getJoint();
+
+                if (joint.getType() == KDL::Joint::Fixed)
+                {
+                    frame = frame * segment.pose(0);
+                    continue;
+                }
+
+                frame = frame * segment.pose(findPosition(joint.getName()));
+            }
+
+            kdlToIsometry(frame, result.transform);
+            return result;
         }
 
         void collectLinkInertials(
@@ -424,6 +545,7 @@ namespace robot_model_server
 
     Model::~Model() = default;
 
+
     void Model::initialize(const std::string &urdf_xml, const Parameters &parameters)
     {
         pimpl_->initialize(urdf_xml, parameters);
@@ -434,6 +556,15 @@ namespace robot_model_server
             const std::vector<double> &joint_positions) const
     {
         return pimpl_->getTransforms(joint_names, joint_positions);
+    }
+
+    [[nodiscard]] Transform Model::getTransform(
+            const std::string &source_frame,
+            const std::string &target_frame,
+            const std::vector<std::string> &joint_names,
+            const std::vector<double> &joint_positions) const
+    {
+        return pimpl_->getTransform(source_frame, target_frame, joint_names, joint_positions);
     }
 
     [[nodiscard]] const std::vector<Transform> &Model::getFixedTransforms() const
