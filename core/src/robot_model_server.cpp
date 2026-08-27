@@ -383,8 +383,8 @@ namespace robot_model_server
         }
 
         [[nodiscard]] Transform getTransform(
-                const std::string &source_frame,
                 const std::string &target_frame,
+                const std::string &source_frame,
                 const std::vector<std::string> &joint_names,
                 const std::vector<double> &joint_positions) const
         {
@@ -394,10 +394,10 @@ namespace robot_model_server
             }
 
             Transform result;
-            result.frame_id = source_frame;
-            result.child_frame_id = target_frame;
+            result.frame_id = target_frame;
+            result.child_frame_id = source_frame;
 
-            if (source_frame == target_frame)
+            if (target_frame == source_frame)
             {
                 return result;
             }
@@ -407,14 +407,14 @@ namespace robot_model_server
                         ? frame.substr(frame_prefix_.size())
                         : frame;
             };
-            const std::string src = stripPrefix(source_frame);
-            const std::string tgt = stripPrefix(target_frame);
+            const std::string src = stripPrefix(target_frame);
+            const std::string tgt = stripPrefix(source_frame);
 
             KDL::Chain chain;
             if (!tree_.getChain(src, tgt, chain))
             {
                 throw std::invalid_argument(
-                        "No kinematic chain found from '" + source_frame + "' to '" + target_frame + "'");
+                        "No kinematic chain found from '" + target_frame + "' to '" + source_frame + "'");
             }
 
             std::vector<std::string> sorted_names = joint_names;
@@ -438,8 +438,8 @@ namespace robot_model_server
                 }
 
                 throw std::invalid_argument(
-                        "Joint '" + name + "' is required to compute the transform from '" + source_frame + "' to '"
-                        + target_frame + "' but was not provided in joint_names");
+                        "Joint '" + name + "' is required to compute the transform from '" + target_frame + "' to '"
+                        + source_frame + "' but was not provided in joint_names");
             };
 
             KDL::Frame frame = KDL::Frame::Identity();
@@ -559,12 +559,12 @@ namespace robot_model_server
     }
 
     [[nodiscard]] Transform Model::getTransform(
-            const std::string &source_frame,
             const std::string &target_frame,
+            const std::string &source_frame,
             const std::vector<std::string> &joint_names,
             const std::vector<double> &joint_positions) const
     {
-        return pimpl_->getTransform(source_frame, target_frame, joint_names, joint_positions);
+        return pimpl_->getTransform(target_frame, source_frame, joint_names, joint_positions);
     }
 
     [[nodiscard]] const std::vector<Transform> &Model::getFixedTransforms() const

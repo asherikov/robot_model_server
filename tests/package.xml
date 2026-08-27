@@ -31,7 +31,7 @@
   <test_depend>tf2_ros_py</test_depend>
 
   <exec_depend>robot_model_server_ros</exec_depend>
-  <exec_depend>ffw_description</exec_depend>
+  <exec_depend>moveit_resources_pr2_description</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>joint_state_publisher_gui</exec_depend>
 

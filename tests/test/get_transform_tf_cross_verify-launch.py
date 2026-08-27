@@ -46,18 +46,18 @@ def generate_test_description():
         description='Path to executable test',
     )
 
-    ffw_share = get_package_share_directory('ffw_description')
-    urdf_dir = os.path.join(ffw_share, 'urdf', 'ffw_bg2_rev4_follower')
+    pr2_share = get_package_share_directory('moveit_resources_pr2_description')
+    urdf_dir = os.path.join(pr2_share, 'urdf')
 
     process_under_test = launch.actions.ExecuteProcess(
         cmd=[launch.substitutions.LaunchConfiguration('test_exe'),
              '--ros-args', '-r', '__ns:=/test_cross_verify',
              '-r', '/tf:=/test_cross_verify/tf', '-r', '/tf_static:=/test_cross_verify/tf_static'],
         output='screen',
-        additional_env={'FFW_DESCRIPTION_URDF_DIR': urdf_dir},
+        additional_env={'PR2_DESCRIPTION_URDF_DIR': urdf_dir},
     )
 
-    urdf_file = os.path.join(urdf_dir, 'ffw_bg2_follower.urdf')
+    urdf_file = os.path.join(urdf_dir, 'robot.xml')
     with open(urdf_file, 'r', encoding='utf-8') as infp:
         robot_desc = infp.read()
 

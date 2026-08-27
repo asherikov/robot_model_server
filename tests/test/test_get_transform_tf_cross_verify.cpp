@@ -48,14 +48,16 @@
 
 static constexpr double EPS = 0.01;
 
-static std::string loadUrdf()
+namespace
 {
-    const char *share_dir = std::getenv("FFW_DESCRIPTION_URDF_DIR");
-    if (!share_dir)
+std::string loadUrdf()
+{
+    const char *share_dir = std::getenv("PR2_DESCRIPTION_URDF_DIR"); // NOLINT(concurrency-mt-unsafe)
+    if (share_dir == nullptr)
     {
-        throw std::runtime_error("FFW_DESCRIPTION_URDF_DIR not set");
+        throw std::runtime_error("PR2_DESCRIPTION_URDF_DIR not set");
     }
-    const std::string path = std::string(share_dir) + "/ffw_bg2_follower.urdf";
+    const std::string path = std::string(share_dir) + "/robot.xml";
     std::ifstream f(path);
     if (!f.is_open())
     {
@@ -66,21 +68,24 @@ static std::string loadUrdf()
     return ss.str();
 }
 
-static std::vector<std::string> parseMovableJointNames(const std::string &urdf)
+std::vector<std::string> parseMovableJointNames(const std::string &urdf)
 {
     std::vector<std::string> names;
     const std::regex re(R"re(<joint\s+name="([^"]+)"\s+type="(revolute|prismatic|continuous)")re");
     for (std::sregex_iterator it(urdf.begin(), urdf.end(), re), end; it != end; ++it)
     {
-        names.push_back((*it)[1]);
+        names.push_back(it->str(1));
     }
     return names;
 }
+} // namespace
 
+namespace
+{
 class CrossVerifyTest : public ::testing::Test
 {
 protected:
-    static void SetUpTestSuite()
+    void SetUp() override
     {
         urdf_ = loadUrdf();
         node_ = rclcpp::Node::make_shared("cross_verify", "test_cross_verify");
@@ -112,7 +117,7 @@ protected:
         }
     }
 
-    static void TearDownTestSuite()
+    void TearDown() override
     {
         pub_.reset();
         tfl_.reset();
@@ -120,14 +125,14 @@ protected:
         node_.reset();
     }
 
-    void verify(const std::string &source, const std::string &target,
+    void verify(const std::string &target, const std::string &source,
                 const std::vector<std::string> &names, const std::vector<double> &positions)
     {
         robot_model_server::Model model;
-        robot_model_server::Model::Parameters params;
+        const robot_model_server::Model::Parameters params;
         model.initialize(urdf_, params);
 
-        const auto core_tf = model.getTransform(source, target, names, positions);
+        const auto core_tf = model.getTransform(target, source, names, positions);
 
         sensor_msgs::msg::JointState js_msg;
         js_msg.header.stamp = node_->now();
@@ -139,9 +144,9 @@ protected:
         pub_->publish(js_msg);
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-        ASSERT_TRUE(buffer_->canTransform(source, target, rclcpp::Time(), rclcpp::Duration::from_seconds(2.0)))
+        ASSERT_TRUE(buffer_->canTransform(target, source, rclcpp::Time(), rclcpp::Duration::from_seconds(2.0)))
                 << "tf lookup failed for " << source << " -> " << target;
-        const auto tf_msg = buffer_->lookupTransform(source, target, rclcpp::Time());
+        const auto tf_msg = buffer_->lookupTransform(target, source, rclcpp::Time());
 
         EXPECT_NEAR(core_tf.transform.translation().x(), tf_msg.transform.translation.x, EPS)
                 << source << " -> " << target << " translation.x";
@@ -151,83 +156,73 @@ protected:
                 << source << " -> " << target << " translation.z";
 
         const Eigen::Quaterniond core_quat(core_tf.transform.linear());
-        const double dot = std::abs(core_quat.x() * tf_msg.transform.rotation.x
-                                    + core_quat.y() * tf_msg.transform.rotation.y
-                                    + core_quat.z() * tf_msg.transform.rotation.z
-                                    + core_quat.w() * tf_msg.transform.rotation.w);
+        const double dot = std::abs((core_quat.x() * tf_msg.transform.rotation.x)
+                                    + (core_quat.y() * tf_msg.transform.rotation.y)
+                                    + (core_quat.z() * tf_msg.transform.rotation.z)
+                                    + (core_quat.w() * tf_msg.transform.rotation.w));
         EXPECT_GT(dot, 1.0 - EPS) << source << " -> " << target << " rotation";
     }
 
-    static std::string urdf_;
-    static rclcpp::Node::SharedPtr node_;
-    static std::shared_ptr<tf2_ros::Buffer> buffer_;
-    static std::shared_ptr<tf2_ros::TransformListener> tfl_;
-    static rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_;
+    std::string urdf_;
+    rclcpp::Node::SharedPtr node_;
+    std::shared_ptr<tf2_ros::Buffer> buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tfl_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_;
 };
-
-std::string CrossVerifyTest::urdf_;
-rclcpp::Node::SharedPtr CrossVerifyTest::node_;
-std::shared_ptr<tf2_ros::Buffer> CrossVerifyTest::buffer_;
-std::shared_ptr<tf2_ros::TransformListener> CrossVerifyTest::tfl_;
-rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr CrossVerifyTest::pub_;
+} // namespace
 
 TEST_F(CrossVerifyTest, FixedOnlyChain)
 {
-    verify("world", "base_link", {}, {});
+    verify("base_link", "base_footprint", {}, {});
 }
 
 TEST_F(CrossVerifyTest, SinglePrismaticJoint)
 {
-    verify("base_link", "arm_base_link", {"lift_joint"}, {0.1});
+    verify("torso_lift_link", "base_link", {"torso_lift_joint"}, {0.1});
 }
 
 TEST_F(CrossVerifyTest, SingleRevoluteJoint)
 {
-    verify("arm_base_link", "arm_l_link1", {"arm_l_joint1"}, {0.5});
+    verify("l_shoulder_pan_link", "torso_lift_link", {"l_shoulder_pan_joint"}, {0.5});
 }
 
 TEST_F(CrossVerifyTest, TwoRevoluteJoints)
 {
-    verify("arm_base_link", "arm_l_link2", {"arm_l_joint1", "arm_l_joint2"}, {0.3, -0.4});
+    verify("l_shoulder_lift_link", "torso_lift_link",
+           {"l_shoulder_pan_joint", "l_shoulder_lift_joint"}, {0.3, -0.4});
 }
 
 TEST_F(CrossVerifyTest, FullArmChain)
 {
     const std::vector<std::string> names = {
-            "arm_l_joint1", "arm_l_joint2", "arm_l_joint3",
-            "arm_l_joint4", "arm_l_joint5", "arm_l_joint6", "arm_l_joint7"};
+            "l_shoulder_pan_joint", "l_shoulder_lift_joint", "l_upper_arm_roll_joint",
+            "l_elbow_flex_joint", "l_forearm_roll_joint", "l_wrist_flex_joint", "l_wrist_roll_joint"};
     const std::vector<double> positions = {0.1, -0.2, 0.3, 0.4, -0.1, 0.2, -0.3};
-    verify("arm_base_link", "arm_l_link7", names, positions);
+    verify("l_wrist_roll_link", "torso_lift_link", names, positions);
 }
 
 TEST_F(CrossVerifyTest, FixedPlusMovableChain)
 {
-    verify("arm_l_link7", "camera_l_link", {}, {});
+    verify("l_gripper_palm_link", "l_wrist_roll_link", {}, {});
 }
 
 TEST_F(CrossVerifyTest, CrossBranchChain)
 {
     const std::vector<std::string> names = {
-            "arm_l_joint1", "arm_l_joint2", "arm_l_joint3",
-            "arm_l_joint4", "arm_l_joint5", "arm_l_joint6", "arm_l_joint7",
-            "arm_r_joint1", "arm_r_joint2", "arm_r_joint3",
-            "arm_r_joint4", "arm_r_joint5", "arm_r_joint6", "arm_r_joint7"};
+            "l_shoulder_pan_joint", "l_shoulder_lift_joint", "l_upper_arm_roll_joint",
+            "l_elbow_flex_joint", "l_forearm_roll_joint", "l_wrist_flex_joint", "l_wrist_roll_joint",
+            "r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint",
+            "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
     const std::vector<double> positions = {
             0.1, -0.2, 0.3, 0.4, -0.1, 0.2, -0.3,
             -0.1, 0.2, -0.3, -0.4, 0.1, -0.2, 0.3};
-    verify("arm_l_link1", "arm_r_link1", names, positions);
+    verify("r_shoulder_pan_link", "l_shoulder_pan_link", names, positions);
 }
 
-TEST_F(CrossVerifyTest, MimicJointChain)
+TEST_F(CrossVerifyTest, GripperJointChain)
 {
-    verify("arm_l_link7", "gripper_l_rh_p12_rn_l2",
-           {"gripper_l_joint1"}, {0.5});
-}
-
-TEST_F(CrossVerifyTest, MimicJointChainWithSource)
-{
-    verify("arm_l_link7", "gripper_l_rh_p12_rn_r2",
-           {"gripper_l_joint1"}, {0.5});
+    verify("l_gripper_l_finger_tip_link", "l_gripper_palm_link",
+           {"l_gripper_l_finger_joint"}, {0.5});
 }
 
 int main(int argc, char **argv)

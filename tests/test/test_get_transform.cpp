@@ -37,7 +37,11 @@
 
 static constexpr double EPS = 1e-6;
 
-static const std::string MOVING_JOINT_URDF = R"(
+namespace
+{
+const std::string &movingJointUrdf()
+{
+    static const std::string urdf = R"(
 <robot name="test_robot">
   <link name="link1" />
   <link name="link2" />
@@ -48,8 +52,12 @@ static const std::string MOVING_JOINT_URDF = R"(
   </joint>
 </robot>
 )";
+    return urdf;
+}
 
-static const std::string FIXED_JOINT_URDF = R"(
+const std::string &fixedJointUrdf()
+{
+    static const std::string urdf = R"(
 <robot name="test_robot">
   <link name="link1" />
   <link name="link2" />
@@ -60,19 +68,21 @@ static const std::string FIXED_JOINT_URDF = R"(
   </joint>
 </robot>
 )";
+    return urdf;
+}
 
-robot_model_server::Model createModel(const std::string &urdf, const std::string &prefix = "")
+void initModel(robot_model_server::Model &model, const std::string &urdf, const std::string &prefix = "")
 {
-    robot_model_server::Model model;
     robot_model_server::Model::Parameters params;
     params.frame_prefix = prefix;
     model.initialize(urdf, params);
-    return model;
 }
+} // namespace
 
 TEST(TestGetTransform, SameFrameReturnsIdentity)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
     const auto tf = model.getTransform("link1", "link1");
 
     EXPECT_EQ(tf.frame_id, "link1");
@@ -82,7 +92,8 @@ TEST(TestGetTransform, SameFrameReturnsIdentity)
 
 TEST(TestGetTransform, FixedJoint)
 {
-    auto model = createModel(FIXED_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, fixedJointUrdf());
     const auto tf = model.getTransform("link1", "link2");
 
     EXPECT_EQ(tf.frame_id, "link1");
@@ -94,7 +105,8 @@ TEST(TestGetTransform, FixedJoint)
 
 TEST(TestGetTransform, MovingJointAtZero)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
     const auto tf = model.getTransform("link1", "link2", {"joint1"}, {0.0});
 
     EXPECT_NEAR(tf.transform.translation().x(), 5.0, EPS);
@@ -104,7 +116,8 @@ TEST(TestGetTransform, MovingJointAtZero)
 
 TEST(TestGetTransform, MovingJointAtPiHalf)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
     const std::vector<std::string> names = {"joint1"};
     const std::vector<double> positions = {M_PI / 2.0};
 
@@ -121,7 +134,8 @@ TEST(TestGetTransform, MovingJointAtPiHalf)
 
 TEST(TestGetTransform, ThrowsWhenJointNotProvided)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
     EXPECT_THROW(model.getTransform("link1", "link2"), std::invalid_argument);
@@ -130,7 +144,8 @@ TEST(TestGetTransform, ThrowsWhenJointNotProvided)
 
 TEST(TestGetTransform, ThrowsWhenNamesSizesMismatch)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
     EXPECT_THROW(model.getTransform("link1", "link2", {"joint1"}, {}), std::invalid_argument);
@@ -139,7 +154,8 @@ TEST(TestGetTransform, ThrowsWhenNamesSizesMismatch)
 
 TEST(TestGetTransform, ThrowsForNonexistentFrames)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
     EXPECT_THROW(model.getTransform("link1", "nonexistent"), std::invalid_argument);
@@ -148,7 +164,8 @@ TEST(TestGetTransform, ThrowsForNonexistentFrames)
 
 TEST(TestGetTransform, WithFramePrefix)
 {
-    auto model = createModel(MOVING_JOINT_URDF, "prefix/");
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf(), "prefix/");
     const auto tf = model.getTransform("prefix/link1", "prefix/link2", {"joint1"}, {0.0});
 
     EXPECT_EQ(tf.frame_id, "prefix/link1");
@@ -158,7 +175,8 @@ TEST(TestGetTransform, WithFramePrefix)
 
 TEST(TestGetTransform, WithFramePrefixUnprefixedInput)
 {
-    auto model = createModel(MOVING_JOINT_URDF, "prefix/");
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf(), "prefix/");
     const auto tf = model.getTransform("link1", "link2", {"joint1"}, {0.0});
 
     EXPECT_EQ(tf.frame_id, "link1");
@@ -168,7 +186,8 @@ TEST(TestGetTransform, WithFramePrefixUnprefixedInput)
 
 TEST(TestGetTransform, WithFramePrefixMixedInput)
 {
-    auto model = createModel(MOVING_JOINT_URDF, "prefix/");
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf(), "prefix/");
     const auto tf = model.getTransform("prefix/link1", "link2", {"joint1"}, {0.0});
 
     EXPECT_EQ(tf.frame_id, "prefix/link1");
@@ -178,7 +197,8 @@ TEST(TestGetTransform, WithFramePrefixMixedInput)
 
 TEST(TestGetTransform, InverseTransformConsistency)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
     const std::vector<std::string> names = {"joint1"};
     const std::vector<double> positions = {M_PI / 3.0};
 
@@ -191,7 +211,8 @@ TEST(TestGetTransform, InverseTransformConsistency)
 
 TEST(TestGetTransform, CrossVerifyWithGetTransforms)
 {
-    auto model = createModel(MOVING_JOINT_URDF);
+    robot_model_server::Model model;
+    initModel(model, movingJointUrdf());
     const std::vector<std::string> names = {"joint1"};
     const std::vector<double> positions = {M_PI / 4.0};
 
