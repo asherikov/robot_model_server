@@ -115,6 +115,10 @@ protected:
             pub_->publish(js_msg);
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
+
+        ASSERT_TRUE(buffer_->canTransform("base_link", "base_footprint", rclcpp::Time(),
+                                           rclcpp::Duration::from_seconds(60.0)))
+                << "robot_state_publisher not ready";
     }
 
     void TearDown() override
@@ -135,18 +139,18 @@ protected:
         const auto core_tf = model.getTransform(target, source, names, positions);
 
         sensor_msgs::msg::JointState js_msg;
-        js_msg.header.stamp = node_->now();
+        const auto stamp = node_->now();
+        js_msg.header.stamp = stamp;
         for (size_t i = 0; i < names.size(); ++i)
         {
             js_msg.name.push_back(names.at(i));
             js_msg.position.push_back(positions.at(i));
         }
         pub_->publish(js_msg);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-        ASSERT_TRUE(buffer_->canTransform(target, source, rclcpp::Time(), rclcpp::Duration::from_seconds(2.0)))
+        ASSERT_TRUE(buffer_->canTransform(target, source, stamp, rclcpp::Duration::from_seconds(2.0)))
                 << "tf lookup failed for " << source << " -> " << target;
-        const auto tf_msg = buffer_->lookupTransform(target, source, rclcpp::Time());
+        const auto tf_msg = buffer_->lookupTransform(target, source, stamp);
 
         EXPECT_NEAR(core_tf.transform.translation().x(), tf_msg.transform.translation.x, EPS)
                 << source << " -> " << target << " translation.x";
