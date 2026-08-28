@@ -61,10 +61,10 @@ def generate_test_description():
     with open(urdf_file, 'r', encoding='utf-8') as infp:
         robot_desc = infp.read()
 
-    params = {'model.description': robot_desc}
-    node_robot_model_server = Node(
-        package='robot_model_server_ros',
-        executable='robot_model_server_ros',
+    params = {'robot_description': robot_desc, 'ignore_timestamp': True}
+    node_robot_state_publisher = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
         namespace='test_cross_verify',
         output='screen',
         parameters=[params],
@@ -75,7 +75,7 @@ def generate_test_description():
     )
 
     return LaunchDescription([
-        node_robot_model_server,
+        node_robot_state_publisher,
         test_exe_arg,
         process_under_test,
         launch_testing.util.KeepAliveProc(),

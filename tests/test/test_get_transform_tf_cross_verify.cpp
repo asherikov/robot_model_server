@@ -109,11 +109,11 @@ protected:
             js_msg.position.push_back(0.0);
         }
 
-        for (unsigned int i = 0; i < 200; ++i)
+        for (unsigned int i = 0; i < 50; ++i)
         {
             js_msg.header.stamp = node_->now();
             pub_->publish(js_msg);
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
 
